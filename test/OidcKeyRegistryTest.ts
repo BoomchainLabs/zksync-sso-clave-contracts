@@ -1,14 +1,19 @@
-import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { expect } from "chai";
 import { ethers } from "ethers";
 import { Wallet } from "zksync-ethers";
 
 import { OidcKeyRegistry, OidcKeyRegistry__factory } from "../typechain-types";
 import { ContractFixtures, getProvider } from "./utils";
+import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 
 describe("OidcKeyRegistry", function () {
   let fixtures: ContractFixtures;
   let oidcKeyRegistry: OidcKeyRegistry;
+
+  async function allKeys(): Promise<[string, string, string, string][]> {
+    const keys = await oidcKeyRegistry.allKeys();
+    return keys.map((key) => [key[0], key[1], key[2], key[3]]);
+  }
 
   this.beforeEach(async () => {
     fixtures = new ContractFixtures();
@@ -24,7 +29,7 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should set one key", async () => {
-    const keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const keys = await allKeys();
     const currentIndex = await oidcKeyRegistry.keyIndex();
     const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
 
@@ -134,7 +139,7 @@ describe("OidcKeyRegistry", function () {
   });
 
   it("should verify key with merkle proof", async () => {
-    const keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const keys = await allKeys();
     const currentIndex = await oidcKeyRegistry.keyIndex();
     const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
 
@@ -157,11 +162,11 @@ describe("OidcKeyRegistry", function () {
     const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
 
     const isValid = await oidcKeyRegistry.verifyKey(key, proof);
-    expect(isValid).to.be.true;
+    expect(isValid).to.be.eq(true);
   });
 
   it("verifyKey should return false when the key is not in the registry", async () => {
-    const keys = await Promise.all(Array.from({ length: 8 }, (_, i) => oidcKeyRegistry.OIDCKeys(i)));
+    const keys = await allKeys();
     const currentIndex = await oidcKeyRegistry.keyIndex();
     const nextIndex = ((currentIndex + 1n) % 8n) as unknown as number;
 
@@ -191,6 +196,6 @@ describe("OidcKeyRegistry", function () {
     const proof = tree.getProof([key.issHash, key.kid, key.n, key.e]);
 
     const isValid = await oidcKeyRegistry.verifyKey(nonExistentKey, proof);
-    expect(isValid).to.be.false;
+    expect(isValid).to.be.eql(false);
   });
 });

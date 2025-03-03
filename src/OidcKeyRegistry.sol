@@ -104,4 +104,12 @@ contract OidcKeyRegistry is Initializable, OwnableUpgradeable {
       value := keccak256(0x00, 0x40)
     }
   }
+
+  function allKeys() public view returns (Key[] memory) {
+    Key[] memory keys = new Key[](MAX_KEYS);
+    for (uint i = 0; i < MAX_KEYS; i++) {
+      keys[i] = OIDCKeys[i];
+    }
+    return keys;
+  }
 }
