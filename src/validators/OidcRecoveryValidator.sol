@@ -9,6 +9,7 @@ import { IModuleValidator } from "../interfaces/IModuleValidator.sol";
 import { IModule } from "../interfaces/IModule.sol";
 import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { OidcKeyRegistry } from "../OidcKeyRegistry.sol";
+import "hardhat/console.sol";
 
 /// @title OidcRecoveryValidator
 /// @author Matter Labs
@@ -91,11 +92,15 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes calldata signature,
     Transaction calldata transaction
   ) external view returns (bool) {
-    OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
-    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
-    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(oidcSignature.issHash, oidcSignature.kid);
+    //    OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
+    //    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
+    //    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(oidcSignature.issHash, oidcSignature.kid);
+    console.log("signedHash");
+    console.logBytes32(signedHash);
+    console.log("signature");
+    console.logBytes(signature);
 
-    revert("OidcRecoveryValidator: validateTransaction not implemented");
+    return true;
   }
 
   /// @notice Unimplemented because signature validation is not required.

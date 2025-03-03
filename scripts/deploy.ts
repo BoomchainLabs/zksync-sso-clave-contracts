@@ -93,6 +93,15 @@ task("deploy", "Deploys ZKsync SSO contracts")
       const oidcRecovery = await deploy(OIDC_RECOVERY_NAME, deployer, !cmd.noProxy, [oidcKeyRegistry, oidcVerifier], oidcRecoveryInterface.encodeFunctionData("initialize", [oidcKeyRegistry, oidcVerifier]));
       const paymaster = await deploy(PAYMASTER_NAME, deployer, false, [factory, sessions, recovery, oidcRecovery]);
 
+      console.log(JSON.stringify({
+        session: sessions,
+        passkey: webauth,
+        recovery: recovery,
+        recoveryOidc: oidcRecovery,
+        accountFactory: factory,
+        accountPaymaster: paymaster,
+      }, null, 2));
+
       await fundPaymaster(paymaster, cmd.fund);
     } else {
       let args: any[] = [];
