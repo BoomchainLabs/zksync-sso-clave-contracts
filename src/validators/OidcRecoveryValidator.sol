@@ -11,6 +11,15 @@ import { VerifierCaller } from "../helpers/VerifierCaller.sol";
 import { OidcKeyRegistry } from "../OidcKeyRegistry.sol";
 import "hardhat/console.sol";
 
+interface IGroth16Verifier {
+  function verifyProof(
+    uint[2] calldata _pA,
+    uint[2][2] calldata _pB,
+    uint[2] calldata _pC,
+    uint[151] calldata _pubSignals
+  ) external view returns (bool);
+}
+
 /// @title OidcRecoveryValidator
 /// @author Matter Labs
 /// @custom:security-contact security@matterlabs.dev
@@ -24,17 +33,22 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes aud; // Audience
   }
 
+  struct ZkProof {
+    uint256[2] piA;
+    uint256[2][2] piB;
+    uint256[2] piC;
+  }
+
   struct OidcSignature {
-    bytes zkProof;
-    bytes32 issHash; // Hash of the issuer
-    bytes32 kid; // Key id used in the jwt
+    ZkProof proof;
+    uint256[151] pubInputs;
   }
 
   mapping(address => OidcData) accountData;
   mapping(bytes32 => address) digestIndex;
 
   address public keyRegistry;
-  address public verifier;
+  IGroth16Verifier public verifier;
 
   constructor(address _keyRegistry, address _verifier) {
     initialize(_keyRegistry, _verifier);
@@ -42,7 +56,7 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
 
   function initialize(address _keyRegistry, address _verifier) public initializer {
     keyRegistry = _keyRegistry;
-    verifier = _verifier;
+    verifier = IGroth16Verifier(_verifier);
   }
 
   /// @notice Runs on module install
@@ -92,13 +106,32 @@ contract OidcRecoveryValidator is VerifierCaller, IModuleValidator, Initializabl
     bytes calldata signature,
     Transaction calldata transaction
   ) external view returns (bool) {
-    //    OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
-    //    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
-    //    OidcKeyRegistry.Key memory key = keyRegistryContract.getKey(oidcSignature.issHash, oidcSignature.kid);
-    console.log("signedHash");
-    console.logBytes32(signedHash);
-    console.log("signature");
-    console.logBytes(signature);
+    OidcKeyRegistry keyRegistryContract = OidcKeyRegistry(keyRegistry);
+    OidcSignature memory oidcSignature = abi.decode(signature, (OidcSignature));
+
+    console.logString("piA");
+    console.logUint(oidcSignature.proof.piA[0]);
+    console.logUint(oidcSignature.proof.piA[1]);
+    console.logString("piB");
+    console.logUint(oidcSignature.proof.piB[0][0]);
+    console.logUint(oidcSignature.proof.piB[0][1]);
+    console.logUint(oidcSignature.proof.piB[1][0]);
+    console.logUint(oidcSignature.proof.piB[1][1]);
+    console.logString("piC");
+    console.logUint(oidcSignature.proof.piC[0]);
+    console.logUint(oidcSignature.proof.piC[1]);
+    console.log("Pub input hash");
+    console.logBytes32(keccak256(abi.encode(oidcSignature.pubInputs)));
+
+    bool res = verifier.verifyProof(
+      oidcSignature.proof.piA,
+      oidcSignature.proof.piB,
+      oidcSignature.proof.piC,
+      oidcSignature.pubInputs
+    );
+
+    console.logString("Result:");
+    console.logBool(res);
 
     return true;
   }
